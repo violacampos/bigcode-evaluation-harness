@@ -5,7 +5,7 @@ import datasets
 import torch
 import transformers
 from accelerate import Accelerator
-from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
+from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser, AutoModelForSeq2SeqLM, T5ForConditionalGeneration
 
 from lm_eval.arguments import EvalArguments
 from lm_eval.evaluator import Evaluator
@@ -137,6 +137,17 @@ def pattern_match(patterns, source_list):
             task_names.add(matching)
     return list(task_names)
 
+def get_model_class(model):
+    seq2seq_models = ["Salesforce/codet5p-2b", "Salesforce/codet5p-6b"]
+    t5_models = ["Salesforce/codet5p-770m", "Salesforce/codet5p-220m"]
+    if (model in seq2seq_models):
+        type = AutoModelForSeq2SeqLM
+
+    elif (model in t5_models):
+        type = T5ForConditionalGeneration
+    else:
+        type = AutoModelForCausalLM
+    return type
 
 def main():
     args = parse_args()
@@ -173,7 +184,8 @@ def main():
                 f"Non valid precision {args.precision}, choose from: fp16, fp32, bf16"
             )
         print(f"Loading tokenizer and model (in {args.precision})")
-        model = AutoModelForCausalLM.from_pretrained(
+        model_class = get_model_class(args.model)
+        model = model_class.from_pretrained(
             args.model,
             revision=args.revision,
             torch_dtype=dict_precisions[args.precision],
@@ -216,13 +228,16 @@ def main():
         "model": args.model,
         "temperature": args.temperature,
         "n_samples": args.n_samples,
+        "max_length": args.max_length_generation,
     }
     if not args.generation_only:
         dumped = json.dumps(results, indent=2)
         if accelerator.is_main_process:
             print(dumped)
 
-        with open(args.metric_output_path, "w") as f:
+        with open(args.metric_output_path, "a") as f:
+            run_id = f"\n{args.model}_{args.temperature}_{args.n_samples}_{args.max_length_generation}\n"
+            f.write(run_id)
             f.write(dumped)
 
 
