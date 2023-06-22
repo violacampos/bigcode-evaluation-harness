@@ -125,6 +125,14 @@ def parse_args():
         action="store_true",
         help="Whether to save reference solutions/tests",
     )
+    parser.add_argument(
+        "--save_references_path",
+        type=str,
+        default="references.json",
+        help="Path for saving reference solutions/tests",
+    )
+
+
     return parser.parse_args()
 
 
@@ -138,7 +146,7 @@ def pattern_match(patterns, source_list):
     return list(task_names)
 
 def get_model_class(model):
-    seq2seq_models = ["Salesforce/codet5p-2b", "Salesforce/codet5p-6b"]
+    seq2seq_models = ["Salesforce/codet5p-2b", "Salesforce/codet5p-6b", "Salesforce/codet5p-16b"]
     t5_models = ["Salesforce/codet5p-770m", "Salesforce/codet5p-220m"]
     if (model in seq2seq_models):
         type = AutoModelForSeq2SeqLM
@@ -217,10 +225,10 @@ def main():
                     with open(args.save_generations_path, "w") as fp:
                         json.dump(generations, fp)
                         print(f"generations were saved at {args.save_generations_path}")
-                    if args.save_references:
-                        with open("references.json", "w") as fp:
-                            json.dump(references, fp)
-                            print("references were saved")
+                    #if args.save_references:
+                    with open(args.save_references_path, "w") as fp:
+                        json.dump(references, fp)
+                        print(f"references were saved at {args.save_references_path}")
             else:
                 results[task] = evaluator.evaluate(task)
 

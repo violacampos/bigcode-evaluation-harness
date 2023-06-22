@@ -126,14 +126,21 @@ def complete_code(
             n_tasks * dataloader.dataset.n_copies / accelerator.num_processes
         ),
     ):
-        with torch.no_grad():
+         with torch.no_grad():
             if task.stop_words:
                 # Set the start_length after which to check for stopping to be the longest input ignoring padding
                 gen_kwargs["stopping_criteria"][0].start_length = (
                     batch["input_len"].max().item()
                 )
+            input_ids=batch["ids"][:, : batch["input_len"]]
+
+            # add_decoder input if neccessary
+            model_id = model.name_or_path
+            if model_id in ["Salesforce/codet5p-2b", "Salesforce/codet5p-6b", "Salesforce/codet5p-16b"]:
+                gen_kwargs['decoder_input_ids'] = input_ids.clone()
+
             generated_tokens = model.generate(
-                input_ids=batch["ids"][:, : batch["input_len"]],
+                input_ids=input_ids,
                 num_return_sequences=batch_size,
                 **gen_kwargs,
             )
