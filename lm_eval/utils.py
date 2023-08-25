@@ -97,6 +97,8 @@ class TokenizedDataset(IterableDataset):
             return f"<fim-prefix>{preprefix}{prefix}<fim-suffix>{suffix}<fim-middle>"
         elif model_id in ["bigcode/starcoder", "bigcode/starcoderbase"]:
             return f"<fim_prefix>{preprefix}{prefix}<fim_suffix>{suffix}<fim_middle>"
+        elif model_id in ['Salesforce/codegen2-1B', 'Salesforce/codegen2-7B']:
+            return f"{prefix}<mask_1>{suffix}<|endoftext|><sep><mask_1>"
         else:
             raise ValueError(f"Infilling not yet supported for: {model_id}")
 
@@ -173,6 +175,9 @@ def complete_code(
             prefix, rest = code.split("<fim_suffix>", 1)
             suffix, infill = rest.split("<fim_middle>", 1)
             infill = infill.split("<|endoftext|>")[0]
+        elif model_id in ['Salesforce/codegen2-1B', 'Salesforce/codegen2-7B']:
+            prefix, suffix, infill = code.split("<mask_1>", 2)
+            suffix = suffix.split("<|endoftext|>")[0]
         else:
             raise ValueError(f"Infilling not yet supported for: {model_id}")
         for k, v in tokenizer.special_tokens_map.items():

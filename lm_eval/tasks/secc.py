@@ -61,7 +61,7 @@ class SecC(Task):
                           features=secc_features)
         # Preprocessing: remove samples with empty prompts
         ds = ds.filter(lambda example: example['prompt'])
-        self.INFILL_MODE=True
+        self.INFILL_MODE=False
         self.dataset = ds['train'].train_test_split(test_size=0.3)
 
 
@@ -81,9 +81,12 @@ class SecC(Task):
             prompt = "".join(lines[-MAX_PROMPT_LINES:])
         if self.INFILL_MODE:
             rest = doc["remainder"]
-            l_rest = rest.splitlines(True)
-            if len(l_rest) > MAX_REST_LINES:
-                rest = "".join(lines[:MAX_REST_LINES])
+            if rest:
+                l_rest = rest.splitlines(True)
+                if len(l_rest) > MAX_REST_LINES:
+                    rest = "".join(lines[:MAX_REST_LINES])
+            else:
+                rest = ""
             return {"prefix": prompt, 
                     "suffix": rest}
         else:
@@ -92,7 +95,8 @@ class SecC(Task):
 
     def get_reference(self, doc):
         """Builds the reference solution for the doc (sample from the test dataset)."""
-        return doc["target_patch"]
+        #return doc["target_patch"] if doc["target_patch"] else " ", doc["target_vul"] if doc["target_vul"] else " "
+        return doc["target_patch"] #, doc["target_vul"]
 
     @staticmethod
     def first_block(string, stop_words):
@@ -113,10 +117,12 @@ class SecC(Task):
     @staticmethod
     def score_best_pred(predictions, reference):
         predictions = np.asarray(predictions)
-        reference = np.asarray(reference)
-        #vuls = 
+        ref = np.asarray(reference)
+        #ref = np.asarray(reference[0])
+        #vuln = np.asarray(reference[1])
         # scores = predictions == reference                 # check for exact match
-        scores = (np.char.find(predictions,reference)!=-1)  # check for matching substring
+        scores = (np.char.find(predictions,ref)!=-1)  # check for matching substring
+
         return scores.max()
 
     @staticmethod
